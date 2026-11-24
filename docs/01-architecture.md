@@ -105,8 +105,8 @@ inmu-lock/
 │   ├── install.sh / uninstall.sh   … make install / uninstall の実体
 │   └── daemon.sh / agent.sh        … launchd の起動・停止 (冪等)
 ├── launchd/
-│   ├── com.mohemohe.inmu-lock.cored.plist   … LaunchDaemon
-│   └── com.mohemohe.inmu-lock.agent.plist    … LaunchAgent
+│   ├── dev.mohemohe.inmu-lock.cored.plist   … LaunchDaemon
+│   └── dev.mohemohe.inmu-lock.agent.plist    … LaunchAgent
 ├── vendor/                         … 取得物 (git管理外)
 ├── daemon/                         … SwiftPM スケルトン (Swift化への参照実装)
 └── tools/                          … 診断ツール (capture / engine / usb_probe)

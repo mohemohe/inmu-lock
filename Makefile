@@ -28,11 +28,11 @@ PAMDIR     = /usr/local/lib/pam
 LIBEXECDIR = /usr/local/libexec/inmu-lock
 ETCDIR     = /usr/local/etc/inmu-lock
 LOGDIR     = /var/log/inmu-lock
-DAEMON_ID  = com.mohemohe.inmu-lock.cored
-AGENT_ID   = com.mohemohe.inmu-lock.agent
-DAEMON_PLIST = /Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist
+DAEMON_ID  = dev.mohemohe.inmu-lock.cored
+AGENT_ID   = dev.mohemohe.inmu-lock.agent
+DAEMON_PLIST = /Library/LaunchDaemons/dev.mohemohe.inmu-lock.cored.plist
 # inmu-agent のコード署名識別子 (リンカ既定の "inmu-agent-arm64.out" 等に依存させない)
-AGENT_SIGN_ID = com.mohemohe.inmu-lock.agent
+AGENT_SIGN_ID = dev.mohemohe.inmu-lock.agent
 
 .PHONY: all vendor enroll install uninstall clean
 .PHONY: stop-daemon start-daemon restart-daemon

@@ -121,7 +121,7 @@ static int open_device_interface(Ft9201Usb *u) {
         if (kr == kIOReturnExclusiveAccess) {
             fprintf(stderr, "[usb] USBDeviceOpen: 他のプロセス (inmu-cored) が"
                     "センサーを排他オープンしています\n"
-                    "    sudo launchctl bootout system/com.mohemohe.inmu-lock.cored\n"
+                    "    sudo launchctl bootout system/dev.mohemohe.inmu-lock.cored\n"
                     "    で停止してから再実行してください\n");
             return -3;
         }

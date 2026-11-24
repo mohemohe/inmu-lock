@@ -50,7 +50,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define SERVICE_NAME "com.mohemohe.inmu-lock"
+#define SERVICE_NAME "dev.mohemohe.inmu-lock"
 #define ACCOUNT_NAME "login-password"
 
 /* パスワード 1 行の最大長 (終端 NUL を含むバッファサイズ) */

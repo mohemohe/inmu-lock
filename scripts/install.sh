@@ -33,11 +33,11 @@ SUDO_LOCAL="/etc/pam.d/sudo_local"
 BEGIN="# BEGIN inmu-lock (pam_inmu)"
 END="# END inmu-lock (pam_inmu)"
 PAM_LINE="auth       sufficient     $PAMDIR/pam_inmu.so timeout_ms=5000"
-DAEMON_PLIST_SRC=launchd/com.mohemohe.inmu-lock.cored.plist
-DAEMON_PLIST_DST=/Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist
-AGENT_PLIST_SRC=launchd/com.mohemohe.inmu-lock.agent.plist
-DAEMON_ID=com.mohemohe.inmu-lock.cored
-AGENT_ID=com.mohemohe.inmu-lock.agent
+DAEMON_PLIST_SRC=launchd/dev.mohemohe.inmu-lock.cored.plist
+DAEMON_PLIST_DST=/Library/LaunchDaemons/dev.mohemohe.inmu-lock.cored.plist
+AGENT_PLIST_SRC=launchd/dev.mohemohe.inmu-lock.agent.plist
+DAEMON_ID=dev.mohemohe.inmu-lock.cored
+AGENT_ID=dev.mohemohe.inmu-lock.agent
 
 # 実ユーザー (agent / Keychain / 登録オーナーの対象)。sudo 実行時は SUDO_USER。
 REAL_USER=""
@@ -45,7 +45,7 @@ REAL_UID=""
 REAL_HOME=""
 inmu_resolve_real_user || exit 1
 AGENT_PLIST_DIR="$REAL_HOME/Library/LaunchAgents"
-AGENT_PLIST_DST="$AGENT_PLIST_DIR/com.mohemohe.inmu-lock.agent.plist"
+AGENT_PLIST_DST="$AGENT_PLIST_DIR/dev.mohemohe.inmu-lock.agent.plist"
 AGENT_LOG_DIR="$REAL_HOME/Library/Logs/inmu-lock"
 
 # 中断時に残さない一時ファイル

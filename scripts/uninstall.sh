@@ -27,9 +27,9 @@ RUNDIR=/var/run/inmu
 SUDO_LOCAL="/etc/pam.d/sudo_local"
 BEGIN="# BEGIN inmu-lock (pam_inmu)"
 END="# END inmu-lock (pam_inmu)"
-DAEMON_ID=com.mohemohe.inmu-lock.cored
-AGENT_ID=com.mohemohe.inmu-lock.agent
-DAEMON_PLIST=/Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist
+DAEMON_ID=dev.mohemohe.inmu-lock.cored
+AGENT_ID=dev.mohemohe.inmu-lock.agent
+DAEMON_PLIST=/Library/LaunchDaemons/dev.mohemohe.inmu-lock.cored.plist
 
 # 実ユーザー (agent の持ち主)。sudo 実行時は SUDO_USER。
 # sudo が必要な操作のみ sudo を使い、agent とホーム配下は実ユーザーとして操作する。
@@ -37,7 +37,7 @@ REAL_USER=""
 REAL_UID=""
 REAL_HOME=""
 inmu_resolve_real_user || exit 1
-AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist"
+AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/dev.mohemohe.inmu-lock.agent.plist"
 AGENT_LOG_DIR="$REAL_HOME/Library/Logs/inmu-lock"
 
 # sudo_local の BEGIN〜END ブロックが「install.sh が書いたままの形」か。
@@ -164,12 +164,12 @@ else
 fi
 echo ""
 if [ "$KEYCHAIN_CLEARED" = "1" ]; then
-    echo "Keychain: $REAL_USER のログインパスワード (com.mohemohe.inmu-lock) を削除しました"
+    echo "Keychain: $REAL_USER のログインパスワード (dev.mohemohe.inmu-lock) を削除しました"
 else
     echo "!! Keychain: $REAL_USER のログインパスワードを削除できたか確認できていません。"
     echo "   保存していた場合は手動で削除してください (inmu-agent は削除済み):"
-    echo "     キーチェーンアクセス →「ログイン」→ com.mohemohe.inmu-lock を削除"
-    echo "     または: security delete-generic-password -s com.mohemohe.inmu-lock -a login-password"
+    echo "     キーチェーンアクセス →「ログイン」→ dev.mohemohe.inmu-lock を削除"
+    echo "     または: security delete-generic-password -s dev.mohemohe.inmu-lock -a login-password"
 fi
 echo ""
 echo "このスクリプトが消さないもの (必要なら手動で削除):"
@@ -178,7 +178,7 @@ echo "    アクセシビリティ → inmu-agent を「−」で削除"
 echo "  - $SUDO_LOCAL.bak.<日時> (install / uninstall が作ったバックアップ)"
 echo "  - $REAL_USER 以外のユーザーで使っていた場合、そのユーザーの"
 echo "    ~/Library/LaunchAgents/$AGENT_ID.plist、~/Library/Logs/inmu-lock、"
-echo "    Keychain の com.mohemohe.inmu-lock (そのユーザーで make uninstall を先に実行するか手動で削除)"
+echo "    Keychain の dev.mohemohe.inmu-lock (そのユーザーで make uninstall を先に実行するか手動で削除)"
 
 # PAM の参照が残っている場合は失敗として終了する (モジュールは残してある)
 if [ "${#PAM_REFS[@]}" -ne 0 ]; then exit 1; fi

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.mohemohe.inmu-lock.cored</string>
+    <string>dev.mohemohe.inmu-lock.cored</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/inmu-cored</string>

@@ -12,8 +12,8 @@
 
 set -u
 
-DAEMON_ID="com.mohemohe.inmu-lock.cored"
-DAEMON_PLIST="/Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist"
+DAEMON_ID="dev.mohemohe.inmu-lock.cored"
+DAEMON_PLIST="/Library/LaunchDaemons/dev.mohemohe.inmu-lock.cored.plist"
 
 # root でない場合は sudo を使う (TTY がない Makefile 経由では失敗するため、
 # Makefile からは sudo make 経由で呼ぶことを想定)。

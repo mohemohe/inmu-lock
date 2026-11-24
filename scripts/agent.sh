@@ -11,7 +11,7 @@
 
 set -u
 
-AGENT_ID="com.mohemohe.inmu-lock.agent"
+AGENT_ID="dev.mohemohe.inmu-lock.agent"
 
 # shellcheck source=scripts/common.sh
 . "$(dirname "$0")/common.sh" || exit 1
@@ -24,7 +24,7 @@ REAL_USER=""
 REAL_UID=""
 REAL_HOME=""
 inmu_resolve_real_user || exit 1
-AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist"
+AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/dev.mohemohe.inmu-lock.agent.plist"
 
 is_loaded() {
     inmu_as_user launchctl print "gui/$REAL_UID/$AGENT_ID" >/dev/null 2>&1

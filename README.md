@@ -104,8 +104,8 @@ scripts/
   install.sh / uninstall.sh
   daemon.sh / agent.sh      launchd の起動・停止 (make start-daemon 等の実体)
 launchd/
-  com.mohemohe.inmu-lock.cored.plist   (LaunchDaemon, root)
-  com.mohemohe.inmu-lock.agent.plist    (LaunchAgent, user)
+  dev.mohemohe.inmu-lock.cored.plist   (LaunchDaemon, root)
+  dev.mohemohe.inmu-lock.agent.plist    (LaunchAgent, user)
 tools/                      診断ツール (src/lib を直接使う):
   capture_test             センサー画像をPGM保存 (照合不良時の原因調査)
   engine_test              画像ファイルで matcher 登録/照合 (デーモン不要)
@@ -137,8 +137,8 @@ daemon/                     SwiftPM スケルトン (センサー抽象化設計
 | `/var/run/inmu/{pam,agent}.sock` | IPC ソケット (0600。デーモンが作る) |
 | `/var/log/inmu-lock/` | デーモンのログ (root 0750/0600。`make logs`) |
 | `/etc/pam.d/sudo_local` | `auth sufficient pam_inmu.so timeout_ms=5000` (1行・マーカー付き) |
-| `/Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist` | デーモン (KeepAlive) |
-| `~/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist` | エージェント |
+| `/Library/LaunchDaemons/dev.mohemohe.inmu-lock.cored.plist` | デーモン (KeepAlive) |
+| `~/Library/LaunchAgents/dev.mohemohe.inmu-lock.agent.plist` | エージェント |
 
 **安全装置** (詳細は docs/01 §4):
 - デーモン不在・応答が `OK` 以外・少しでも想定外の場合、PAM は `PAM_IGNORE`
@@ -168,11 +168,11 @@ agent のログを削除し、Keychain に保存したログインパスワー�
 - **Keychain のログインパスワード** (自動削除に失敗した場合、または `make uninstall` を
   実行したユーザー以外が保存していた場合): アンインストール前なら
   `/usr/local/bin/inmu-agent --unset-password`、後なら
-  `security delete-generic-password -s com.mohemohe.inmu-lock -a login-password`、
-  またはキーチェーンアクセス →「ログイン」→ `com.mohemohe.inmu-lock` を削除
+  `security delete-generic-password -s dev.mohemohe.inmu-lock -a login-password`、
+  またはキーチェーンアクセス →「ログイン」→ `dev.mohemohe.inmu-lock` を削除
 - アクセシビリティの許可 (システム設定 → プライバシーとセキュリティ → アクセシビリティ)
 - `/etc/pam.d/sudo_local.bak.<日時>` (install / uninstall が書き換え前に作るバックアップ)
-- `make uninstall` を実行したユーザー以外の `~/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist`
+- `make uninstall` を実行したユーザー以外の `~/Library/LaunchAgents/dev.mohemohe.inmu-lock.agent.plist`
   と `~/Library/Logs/inmu-lock/` (複数ユーザーでインストールした場合は、各ユーザーで
   `make uninstall` を実行するか手動で削除する)
 
@@ -216,7 +216,7 @@ agent のログを削除し、Keychain に保存したログインパスワー�
   `WAIT <ms> <uid>` → cored が承認ポリシーを判定 → `OK` のときだけ `PAM_SUCCESS`
 - **ロック解除**: cored → `agent.sock` (登録オーナー 0600) → agent →
   コンソール上かつ `CGSSessionScreenIsLocked` 判定 →
-  Keychain (`com.mohemohe.inmu-lock`) → `CGEventPost` 注入
+  Keychain (`dev.mohemohe.inmu-lock`) → `CGEventPost` 注入
 - **matcher**: x86_64 PE (FocalTech 製) を Apple Silicon の Rosetta 2 上で in-process 実行。
   `%gs` (TEB) は mach trap `0x3000003`、libc 呼び出しは gs 切替え規律で保護
   (docs/03 §3-a)
