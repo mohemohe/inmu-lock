@@ -190,8 +190,7 @@ int main(int argc, char **argv) {
                 log_step("テンプレート保存: %s (%zu bytes) ✅ (受理 %d / 却下 %d)",
                          out_path, tmpllen, accepted, rejected);
                 rc = 0;
-                log_step("デーモンへの反映: sudo launchctl kickstart -k system/com.mohemohe.inmu-lock.cored");
-                log_step("(手動起動の場合は inmu-cored を再起動してください)");
+                log_step("デーモンへの反映: sudo make restart-daemon");
             } else {
                 fprintf(stderr, "[enroll] テンプレート書き込み失敗: %s (root が必要なら sudo で)\n",
                         out_path);

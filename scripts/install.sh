@@ -8,9 +8,10 @@
 #   3. launchd 登録:
 #      - LaunchDaemon (root): cored — センサー+matcher+IPC
 #      - LaunchAgent (user):  agent — ロック解除注入
-#   4. 稼働に必要な残りの手順を表示 (enroll / パスワード / アクセシビリティ)
+#   4. 稼働に必要な残りの手順を表示
 #
 # アンインストール: make uninstall
+# 冪等性: 既に起動中/登録済みでも正しく動作する
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -30,6 +31,10 @@ AGENT_PLIST_SRC=launchd/com.mohemohe.inmu-lock.agent.plist
 AGENT_PLIST_DST="$HOME/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist"
 DAEMON_ID=com.mohemohe.inmu-lock.cored
 AGENT_ID=com.mohemohe.inmu-lock.agent
+
+# sudo 実行時は実際のユーザーの uid を使う (agent は GUI ドメインのため)
+REAL_UID=$(id -u "${SUDO_USER:-$(whoami)}")
+REAL_HOME=$(eval echo "~${SUDO_USER:-$(whoami)}")
 
 echo "==> 1/5 バイナリ・DLL を配置"
 sudo mkdir -p "$BINDIR" "$PAMDIR" "$LIBEXECDIR" "$ETCDIR" "$LOGDIR"
@@ -54,25 +59,33 @@ fi
 sudo chmod 0644 "$SUDO_LOCAL"
 echo "    追加行: $PAM_LINE"
 
-echo "==> 3/5 launchd に登録 (daemon: root / agent: user)"
+echo "==> 3/5 launchd に登録 (daemon: system / agent: gui/$REAL_UID)"
+
 # cored (LaunchDaemon)
 sudo install -m 0644 "$DAEMON_PLIST_SRC" "$DAEMON_PLIST_DST"
+# 冪等: 既に起動中なら停止してから再登録
 sudo launchctl bootout system/"$DAEMON_ID" 2>/dev/null || true
-sudo launchctl bootstrap system "$DAEMON_PLIST_DST"
+sudo launchctl bootstrap system "$DAEMON_PLIST_DST" || true
 
-# agent (LaunchAgent) — ログパスのPLACEHOLDERをユーザーHOMEに置換
-mkdir -p "$HOME/Library/Logs/inmu-lock"
-sed "s|PLACEHOLDER|$HOME|g" "$AGENT_PLIST_SRC" > /tmp/inmu-agent.plist.$$
-launchctl bootout gui/$(id -u)/"$AGENT_ID" 2>/dev/null || true
+# agent (LaunchAgent) — sudo 実行時は実ユーザー (SUDO_USER) として操作
+mkdir -p "$REAL_HOME/Library/Logs/inmu-lock"
+sed "s|PLACEHOLDER|$REAL_HOME|g" "$AGENT_PLIST_SRC" > /tmp/inmu-agent.plist.$$
 install -m 0644 /tmp/inmu-agent.plist.$$ "$AGENT_PLIST_DST"
 rm -f /tmp/inmu-agent.plist.$$
-launchctl bootstrap gui/$(id -u) "$AGENT_PLIST_DST"
+# 冪等: 既に起動中なら停止してから再登録
+launchctl bootout gui/"$REAL_UID"/"$AGENT_ID" 2>/dev/null || \
+    sudo -u "$REAL_USER" launchctl bootout gui/"$REAL_UID"/"$AGENT_ID" 2>/dev/null || true
+if [ "$(id -u)" = "0" ]; then
+    sudo -u "$REAL_USER" launchctl bootstrap gui/"$REAL_UID" "$AGENT_PLIST_DST" || true
+else
+    launchctl bootstrap gui/"$REAL_UID" "$AGENT_PLIST_DST" || true
+fi
 
 echo "==> 4/5 状態確認"
 sleep 1
 sudo launchctl print system/"$DAEMON_ID" 2>/dev/null | grep -E "state|pid" | head -2 || \
     echo "    (cored: テンプレート未登録などで起動待ちの場合あり)"
-launchctl print gui/$(id -u)/"$AGENT_ID" 2>/dev/null | grep -E "state|pid" | head -2 || true
+launchctl print gui/"$REAL_UID"/"$AGENT_ID" 2>/dev/null | grep -E "state|pid" | head -2 || true
 
 echo ""
 echo "================================ インストール完了 ================================"
@@ -81,10 +94,10 @@ echo "稼働に必要な残りの手順:"
 echo ""
 if [ ! -f "$ETCDIR/template.bin" ]; then
     echo "  1. 指紋を登録 (対話的に指を置いてください):"
-    echo "       make enroll"
+    echo "       sudo make stop-daemon && sudo make enroll && sudo make start-daemon"
 else
     echo "  1. 指紋テンプレート: $ETCDIR/template.bin ✅"
-    echo "     (登録し直す場合: make enroll → sudo launchctl kickstart -k system/$DAEMON_ID)"
+    echo "     (登録し直す場合: sudo make stop-daemon && sudo make enroll && sudo make start-daemon)"
 fi
 echo ""
 echo "  2. 画面ロック解除を使う場合のみ:"
@@ -92,12 +105,13 @@ echo "     a. ログインパスワードを保存:   $BINDIR/inmu-agent --set-p
 echo "     b. アクセシビリティ権限を与える:"
 echo "        システム設定 → プライバシーとセキュリティ → アクセシビリティ"
 echo "        → 「+」→ $BINDIR/inmu-agent を追加"
-echo "        (launchd から起動されるため、実行バイナリ自体に権限が必要)"
-echo "     c. agent を再起動:  launchctl kickstart -k gui/$(id -u)/$AGENT_ID"
+echo "     c. agent を再起動:  make restart-agent"
 echo ""
-echo "テスト:"
 echo "  sudo 指紋認証:   sudo -k && sudo whoami  → センサーに触れる"
 echo "  画面ロック解除:  ⌃⌘Q → センサーに触れる"
 echo "  状態/ログ:      make status / make logs"
 echo ""
+echo "デーモン操作:"
+echo "  cored:  sudo make stop-daemon / start-daemon / restart-daemon"
+echo "  agent:  make stop-agent / start-agent / restart-agent"
 echo "解除: make uninstall"
