@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mohemohe.inmu-lock.cored</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/inmu-cored</string>
+        <string>--template</string>
+        <string>/usr/local/etc/inmu-lock/template.bin</string>
+        <string>--engine</string>
+        <string>/usr/local/libexec/inmu-lock/ftWbioEngineAdapter.dll</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/var/log/inmu-lock/cored.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/inmu-lock/cored.err.log</string>
+</dict>
+</plist>
