@@ -11,31 +11,18 @@ src/lib/ft9201_fw.h
 .build/
 *.xcodeproj/
 
-# MVP (T4-T6) のビルド生成物
-mvp/inmu-cored
-mvp/pam_inmu.so
-mvp/inmu-agent
+# inmu-lock CLI 診断ツールのビルド生成物
+tools/capture_test
+tools/usb_probe
+tools/engine_test
 
-# 検証A のビルド生成物
-prototypes/pam-dummy/pam_inmu_dummy.so
-prototypes/pam-dummy/pam_harness
+# センサーキャプチャ・テンプレート (ローカル実行の産物)
+*.pgm
+ft_template.bin
 
-# 検証C (matcher/Rosetta 2) 用のビルド生成物と vendor blob
-prototypes/pe-loader-test/blobs/
-prototypes/pe-loader-test/stage0*
-prototypes/pe-loader-test/engine_test
-prototypes/pe-loader-test/ft_template.bin
+# デバッグシンボル
+*.dSYM/
 
-# 検証D (USB transport) のビルド生成物・取得物・キャプチャ
-prototypes/usb-transport/usb_probe
-prototypes/usb-transport/transport_test
-prototypes/usb-transport/capture_test
-prototypes/usb-transport/blobs/
-prototypes/usb-transport/src/ft9201_fw.h
-prototypes/usb-transport/*.pgm
-prototypes/usb-transport/*.bin
-
-# 雑多
-.DS_Store
+# 本番構成の開発中の一時ファイル
 *.log
 

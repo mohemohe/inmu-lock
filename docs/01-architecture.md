@@ -94,13 +94,14 @@ inmu-lock/
 │   └── com.mohemohe.inmu-lock.agent.plist    … LaunchAgent
 ├── vendor/                         … 取得物 (git管理外)
 ├── daemon/                         … SwiftPM スケルトン (Swift化への参照実装)
-└── prototypes/                     … 検証A〜D の実験記録 (実績の証跡)
+└── tools/                          … 診断ツール (capture / engine / usb_probe)
 ```
 
 **プロトタイプから本番への昇格の経緯**: `prototypes/` で検証した各要素
 （検証A: PAM、B: ロック、C: PEローダー、D: USB/bring-up）は
-`src/lib/` + `src/*/` に本番コードとして統合された。prototypes は
-実績の証跡として残す。
+`src/lib` + `src/*/` + `tools/` に本番コードとして統合された。
+prototypes は作業ツリーから削除済みだが、**検証時のコードは git 初期コミット
+(`1025ca1`) に永久保存**されている（docs/04 は当時の手順の記録）。
 
 ---
 

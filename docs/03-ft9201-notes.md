@@ -54,7 +54,8 @@ macOS (Apple Silicon) では x86_64 PE を直接実行できないため、Match
 
 ### §3-a の実証結果 (検証C, 2026-11-24 実施) — ✅ 成立
 
-`prototypes/pe-loader-test/` で実施。**ftWbioEngineAdapter.dll (x86-64 PE) が
+検証Cプロジェクトとして実施（コードは `src/lib/ft_engine_mac.c` に昇格、
+診断ツールは `tools/engine_test`）。**ftWbioEngineAdapter.dll (x86-64 PE) が
 Apple Silicon (M1系, macOS 27.0.1) 上の Rosetta 2 で完全に動作した。**
 
 実測で確定した技術要素:
@@ -136,8 +137,8 @@ Windows マシンに挿して安定状態に戻す」運用が報告されてい
 
 ## 7. 調査TODO
 
-- [x] ~~config descriptor から **bulk IN/OUT の bEndpointAddress を確定**~~ → **✅ 2026-11-24 成立** (検証D `prototypes/usb-transport/`。EP 0x02 OUT / 0x83 IN を実測、Linux実装と一致)
-- [x] ~~**Rosetta 2 + PE ローダー最小実験**~~ → **✅ 2026-11-24 成立** (検証C `prototypes/pe-loader-test/`。詳細は §3-a)
+- [x] ~~config descriptor から **bulk IN/OUT の bEndpointAddress を確定**~~ → **✅ 2026-11-24 成立** (検証D: EP 0x02 OUT / 0x83 IN を実測、Linux実装と一致。実装は `src/lib/usb_transport.c`、診断は `tools/usb_probe`)
+- [x] ~~**Rosetta 2 + PE ローダー最小実験**~~ → **✅ 2026-11-24 成立** (検証C。詳細は §3-a。実装は `src/lib/ft_engine_mac.c`)
 - [ ] banianitc `ft9201.c` のコマンド定数を整理して `Ft9201Command.swift` に移植
 - [ ] fw blob の抽出・保存形式の決定（署名検証など改ざん対策も）
 - [ ] **matcher ヘルパーを x86_64 プロセスとして実装** (engine_test をベースに Unix socket 化。実画像での genuine 5/5 + imposter 0/5 が目標 — T2 のセンサー画像で評価)

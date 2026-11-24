@@ -72,19 +72,23 @@ scripts/
 launchd/
   com.mohemohe.inmu-lock.cored.plist   (LaunchDaemon, root)
   com.mohemohe.inmu-lock.agent.plist    (LaunchAgent, user)
+tools/                      診断ツール (src/lib を直接使う):
+  capture_test             センサー画像をPGM保存 (照合不良時の原因調査)
+  engine_test              画像ファイルで matcher 登録/照合 (デーモン不要)
+  usb_probe                USB 構成確認
 vendor/                     取得物 (gitignore)
 docs/
   01-architecture.md        全体設計・言語選定・コンポーネント詳細・セキュリティ
   02-sensor-interface.md    センサー抽象化インターフェース設計
   03-ft9201-notes.md        センサー技術調査（Linux実装・matcher問題・T3実績）
   04-testing-rollback.md    検証A〜B 手順とロールバック記録
-prototypes/
-  pam-dummy/                検証A: ダミーPAMモジュール (C)
-  lock-probe/               検証B: ロック判定・キー注入プローブ (Swift)
-  pe-loader-test/           検証C: Rosetta2 + PEローダー実験
-  usb-transport/            検証D: IOKit USBトランスポート + FT9201 bring-up
 daemon/                     SwiftPM スケルトン (センサー抽象化設計の参照実装)
 ```
+
+> 検証A〜D の実験コード (pam-dummy / lock-probe / pe-loader-test / usb-transport) は
+> すべて本番構成へ昇格したため作業ツリーから削除された。
+> 検証時のコードと手順は git 初期コミット (`1025ca1`) に永久保存されている。
+> docs/04 は当時の手順・結果の記録としてそのまま残している。
 
 ## インストールされるもの (`make install`)
 

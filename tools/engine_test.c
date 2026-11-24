@@ -27,6 +27,7 @@
 
 /* クラッシュ診断: フォールト時の RIP (DLL内ならオフセット) と周辺バイトを表示 */
 static void crash_handler(int sig, siginfo_t *si, void *ctx_) {
+    (void)si;
     ucontext_t *uc = (ucontext_t *)ctx_;
     uint64_t rip = uc->uc_mcontext->__ss.__rip;
     static const uint64_t imgbase = 0x180000000ULL;
@@ -81,7 +82,7 @@ static int save_file(const char *path, const unsigned char *p, size_t len) {
 }
 
 int main(int argc, char **argv) {
-    const char *dll = "blobs/ftWbioEngineAdapter.dll";
+    const char *dll = NULL; /* --dll で指定。なければ既定位置から探索 */
     const char *mode = NULL;
 
     /* 引数: [--dll PATH] [--enroll img...] | [--verify tmpl img...] */
@@ -95,6 +96,25 @@ int main(int argc, char **argv) {
             mode = argv[argi];
             argi++;
         }
+    }
+    if (!dll) {
+        /* 既定位置から探索: インストール先 → 開発用 vendor/ */
+        const char *candidates[] = {
+            "/usr/local/libexec/inmu-lock/ftWbioEngineAdapter.dll",
+            "vendor/ftWbioEngineAdapter.dll",
+            "../vendor/ftWbioEngineAdapter.dll",
+        };
+        for (size_t i = 0; i < sizeof candidates / sizeof candidates[0]; i++) {
+            if (access(candidates[i], R_OK) == 0) {
+                dll = candidates[i];
+                break;
+            }
+        }
+    }
+    if (!dll) {
+        fprintf(stderr, "!! ftWbioEngineAdapter.dll が見つからない "
+                        "(make vendor を実行、または --dll で指定)\n");
+        return 2;
     }
 
     /* ---------- 実画像モード ---------- */
