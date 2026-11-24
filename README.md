@@ -9,7 +9,10 @@ macOS において、汎用USB指紋センサー **Focal-systems FT9201 (VID 280
 アーキテクチャは immurok (IK-1) の macOS 版と同じ分離方式
 （sudo は PAM、画面ロック解除は Keychain＋キーストローク注入）。
 
-> **現在地: 本番構成 (CLI) 実装済み — 全経路が実機で動作実証済み**
+> **現在地: 本番構成 (CLI) 実装済み — 実機での動作実証はセキュリティ修正前の構成まで。
+> 修正後の構成 (現在のコード) は実機で未確認**
+>
+> 以下の検証A〜D と統合テストは、いずれも**セキュリティ修正前の構成で**行ったもの:
 >
 > - **検証A (PAM / sudo): ✅** パスワードレスsudo・フォールバック・ロールバック安全性
 > - **検証B (画面ロック): ✅** ロック判定・Keychain・ロック画面へのキー注入
@@ -17,38 +20,83 @@ macOS において、汎用USB指紋センサー **Focal-systems FT9201 (VID 280
 >   実指紋で genuine 3/3 MATCH / imposter 3/3 reject
 > - **検証D (USB): ✅** fw転送による bring-up (MCU起動 `a5 5a`)・96×96 実画像取得
 > - **本番構成 `src/` + `Makefile`:** cored / pam / agent / enroll + launchd。
->   **実ロック画面での sudo 認証・ロック解除の統合テストも通過済み**
+>   実ロック画面での sudo 認証・ロック解除の統合テストを通過 (修正前の構成で)
+>
+> 現在のコードについて:
+>
+> - **セキュリティ修正 (承認ポリシー・peer 検証・ロックアウト・Hardened Runtime・
+>   vendor のハッシュ固定):** 実装済み。ただし確認はスタブ付きデーモンと単体ハーネスまでで、
+>   **修正後の構成での実機通しテストは未実施**。導入前に
+>   [セキュリティ上の残存リスク](#セキュリティ上の残存リスク) を読むこと
 
 ---
 
 ## クイックスタート (CLI)
 
 ```sh
-make vendor        # 依存バイナリ取得 (FocalTech DLL + MCU fw) — 初回のみ
-make               # ビルド
-make install       # /usr/local + launchd + sudo_local へ組み込み
-make enroll        # 指紋を登録 (対話: 指を置く)
+make vendor        # 依存バイナリ取得 (FocalTech DLL + MCU fw)。SHA-256 を既知の値と照合
+make               # ビルド (inmu-agent は Hardened Runtime 付きで ad-hoc 署名される)
+make install       # /usr/local + launchd + sudo_local へ組み込み。登録オーナーも記録
 
-# 画面ロック解除を使う場合のみ:
-/usr/local/bin/inmu-agent --set-password    # パスワードをKeychainに保存
+# 指紋を登録 (対話: 指を置く)。センサーはデーモンが占有しているので止めてから:
+sudo make stop-daemon && sudo make enroll && sudo make start-daemon
+
+# 画面ロック解除を使う場合のみ (パスワードを Keychain に保存する。下の残存リスク (c) 参照):
+/usr/local/bin/inmu-agent --set-password    # 端末から入力 (パイプ不可)
 # アクセシビリティ権限: システム設定 → プライバシーとセキュリティ →
 #   アクセシビリティ → /usr/local/bin/inmu-agent を追加
-launchctl kickstart -k gui/$(id -u)/com.mohemohe.inmu-lock.agent
+make restart-agent
 
-# テスト:
+# 動作確認:
 sudo -k && sudo whoami     # → 「指紋センサーに触れてください」→ 触る → root
 ⌃⌘Q → 指紋センサーに触れる   # → ロック解除
 make status && make logs
 ```
 
-> 開発モード（`/usr/local` に入れずに試す）:
+- `make enroll` は**インストール済みの** `/usr/local/bin/inmu-enroll` を実行する
+  (ユーザーが書き換えられる `build/` の生成物を root で実行しないため)。テンプレートと一緒に
+  「登録オーナー」(指紋の持ち主の uid) を `/usr/local/etc/inmu-lock/owner` に記録する
+- 指紋で承認されるのは、**登録オーナー本人が、コンソールの GUI セッション内で、画面が
+  ロックされていない時に実行した sudo** だけ。SSH セッション内で実行した sudo・他ユーザー・
+  画面ロック中は常にパスワード入力になる (登録オーナー本人の権限で SSH ログインできる相手は
+  GUI セッション側で sudo を起動させられるので、残存リスク (b) と同じ扱いになる)
+- 1 回のタッチで承認される sudo は 1 件だけ。連続 5 回の不一致で 60 秒〜15 分のロックアウト
+  (その間もパスワードは使える)
+- 指紋を待っている sudo が無く、画面もロックされていない時にセンサーへ触れても、撮影も照合も
+  しない (不一致として数えられることもない)
+
+> 開発モード（`/usr/local` に入れずにセンサー・照合・IPC を試す。センサーは排他利用なので
+> インストール済みのデーモンは止めておく）:
 > ```sh
-> make enroll  # または build/inmu-enroll --out /tmp/tmpl.bin
-> sudo build/inmu-cored --template /tmp/tmpl.bin --engine vendor/ftWbioEngineAdapter.dll \
->   --sockdir /tmp/inmu-ipc
-> # /etc/pam.d/sudo_local に sock=/tmp/inmu-ipc/pam.sock を手動で一時設定することで
-> # PAM接続先を変更可能 (sock= モジュール引数)
+> build/inmu-enroll --engine vendor/ftWbioEngineAdapter.dll \
+>   --out /tmp/inmu/tmpl.bin --owner-file /tmp/inmu/owner
+> build/inmu-cored --template /tmp/inmu/tmpl.bin --engine vendor/ftWbioEngineAdapter.dll \
+>   --sockdir /tmp/inmu/sock --state-dir /tmp/inmu/state --owner-file /tmp/inmu/owner
 > ```
+> 非 root で `--sockdir` と `--state-dir` の両方を指定するとテストモードになる。このモードの
+> デーモンは **本物の sudo からは使えない** (PAM モジュールは root のデーモンにしか接続せず、
+> root のデーモンは root 所有のテンプレート・DLL・ディレクトリしか受け付けない)。
+> IPC は `src/common/ipc.h` の行プロトコルを話す自作クライアントで確認する。
+
+### 既存インストールからの更新
+
+セキュリティ修正より前のバージョンを入れている場合。プロトコルが変わったため、
+新旧のコンポーネントは混在できない。
+
+1. `make clean && make vendor && make && make install` — 全コンポーネントを入れ替える。
+   `/usr/local` 配下のインストール先が root 所有・他者書き込み不可でない場合は中止する
+2. **登録オーナー**: `install.sh` は `/usr/local/etc/inmu-lock/owner` が無ければ、実行した
+   ユーザーの uid で作る (既存のテンプレートはそのユーザーの指紋とみなす)。指紋の持ち主が
+   別のユーザーなら、`sudo make stop-daemon && sudo make enroll && sudo make start-daemon` で
+   本人が登録し直すこと。このファイルが無い・不正な間、デーモンは一切承認しない
+3. **アクセシビリティの再許可**: `inmu-agent` の署名が変わるため、システム設定の一覧から
+   既存の `inmu-agent` を「−」で削除し、追加し直す
+4. **`/usr/local/bin/inmu-agent --set-password` のやり直し**: Keychain 項目のアクセス許可も
+   署名に結び付いている。その後 `make restart-agent`
+5. 上の「動作確認」を行う。SSH 越しの `sudo` が指紋で通らないことも確認するとよい
+
+3 と 4 は、以後も `inmu-agent` をビルドし直してインストールするたびに必要になる
+(ad-hoc 署名はビルドごとに変わる)。
 
 ## ディレクトリ構成
 
@@ -67,8 +115,10 @@ src/
   agent/inmu-agent.c        Unlock Agent (universal): MATCH→ロック判定→Keychain→注入
   enroll/inmu-enroll.c      登録ツール (x86_64): 対話的に指紋を登録
 scripts/
-  fetch-vendor.sh           依存バイナリ取得 (MS Update Catalog + ft9201-static)
+  fetch-vendor.sh           依存バイナリ取得 (MS Update Catalog + ft9201-static、SHA-256 照合)
+  common.sh                 共有定数 (vendor の SHA-256)・実ユーザーの特定
   install.sh / uninstall.sh
+  daemon.sh / agent.sh      launchd の起動・停止 (make start-daemon 等の実体)
 launchd/
   com.mohemohe.inmu-lock.cored.plist   (LaunchDaemon, root)
   com.mohemohe.inmu-lock.agent.plist    (LaunchAgent, user)
@@ -97,28 +147,93 @@ daemon/                     SwiftPM スケルトン (センサー抽象化設計
 | `/usr/local/bin/inmu-{cored,agent,enroll}` | 本体3種 |
 | `/usr/local/lib/pam/pam_inmu.so` | PAM モジュール |
 | `/usr/local/libexec/inmu-lock/ftWbioEngineAdapter.dll` | vendor matcher |
-| `/usr/local/etc/inmu-lock/template.bin` | 登録テンプレート (0600) |
-| `/etc/pam.d/sudo_local` | `auth sufficient pam_inmu.so timeout_ms=3000` (1行・マーカー付き) |
+| `/usr/local/etc/inmu-lock/template.bin` | 登録テンプレート (root 0600。`make enroll` が作る) |
+| `/usr/local/etc/inmu-lock/owner` | 登録オーナーの uid (root 0644、10 進 1 行) |
+| `/var/db/inmu-lock/lockout` | 連続失敗カウンタ・ロックアウト状態 (root 0700/0600) |
+| `/var/run/inmu/{pam,agent}.sock` | IPC ソケット (0600。デーモンが作る) |
+| `/var/log/inmu-lock/` | デーモンのログ (root 0750/0600。`make logs`) |
+| `/etc/pam.d/sudo_local` | `auth sufficient pam_inmu.so timeout_ms=5000` (1行・マーカー付き) |
 | `/Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist` | デーモン (KeepAlive) |
 | `~/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist` | エージェント |
 
-**安全装置**:
-- デーモン不在時、PAM は即 `PAM_IGNORE` (sudo は従来どおり)
-- 画面ロック中のみ注入 (誤爆防止 — `CGSSessionScreenIsLocked` 判定)
-- `make uninstall` で完全解除 (`/etc/pam.d` はマーカー行のみ除去)
+**安全装置** (詳細は docs/01 §4):
+- デーモン不在・応答が `OK` 以外・少しでも想定外の場合、PAM は `PAM_IGNORE`
+  (sudo は従来どおりパスワード入力)
+- 承認は登録オーナー本人・コンソール GUI セッション・画面非ロックの sudo に限る。
+  1 回のタッチで 1 件だけ。指を置きっぱなしにしても再承認しない
+- 連続 5 回の不一致でロックアウト (再起動・USB 抜き差しでも消えない。試行は照合の前に
+  記録し、記録できなければ照合しない)
+- agent への通知は画面ロック中だけ。agent も画面ロック中のみ注入し、1 文字ごとにロック状態を
+  再確認 (誤爆防止)
+- 各ソケットは 0600 で、双方が接続相手を検証する
+
+## アンインストール (`make uninstall`)
+
+launchd の登録・`/etc/pam.d/sudo_local` のマーカー行・インストールしたファイル・デーモンと
+agent のログを削除し、Keychain に保存したログインパスワードも
+`inmu-agent --unset-password` で削除する (削除できたかは最後に表示される)。
+
+`sudo_local` を手で編集していてマーカー行が `install.sh` の書いた形と違う場合は書き換えない。
+`/etc/pam.d` に `pam_inmu.so` を参照する行が残っている間は、sudo を壊さないよう
+`/usr/local/lib/pam/pam_inmu.so` を削除せず、該当行を表示して終了コード 1 で終わる
+(デーモンは削除済みなので sudo はパスワード入力になる)。表示された行を手で消してから
+もう一度 `make uninstall` を実行する。
+
+**次のものは残る**ので、必要なら手動で削除する:
+
+- **Keychain のログインパスワード** (自動削除に失敗した場合、または `make uninstall` を
+  実行したユーザー以外が保存していた場合): アンインストール前なら
+  `/usr/local/bin/inmu-agent --unset-password`、後なら
+  `security delete-generic-password -s com.mohemohe.inmu-lock -a login-password`、
+  またはキーチェーンアクセス →「ログイン」→ `com.mohemohe.inmu-lock` を削除
+- アクセシビリティの許可 (システム設定 → プライバシーとセキュリティ → アクセシビリティ)
+- `/etc/pam.d/sudo_local.bak.<日時>` (install / uninstall が書き換え前に作るバックアップ)
+- `make uninstall` を実行したユーザー以外の `~/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist`
+  と `~/Library/Logs/inmu-lock/` (複数ユーザーでインストールした場合は、各ユーザーで
+  `make uninstall` を実行するか手動で削除する)
+
+## セキュリティ上の残存リスク
+
+ソフトウェアでは解消できない、または解消していないもの。全文は
+[docs/01-architecture.md §4.6](docs/01-architecture.md) にある。
+
+- **(a) センサーを認証できない**: USB の VID/PID でしか識別できず、画像は平文。生体検知も
+  無い。偽造指や、USB に挿した偽デバイスからの画像再生を区別できない。ロックアウトは
+  当てずっぽうの総当たりを遅くするだけ。物理的に触れられる相手にはパスワードより弱い
+- **(b) タッチの便乗**: 自分の権限で GUI セッション内に常駐するマルウェアは、`sudo` を
+  待機させて、別の目的のタッチを横取りできる。「いま何を承認するか」を示す信頼できる
+  UI は無い。見覚えのない指紋プロンプトが出ているときは触れないこと。登録オーナー本人の
+  権限で SSH ログインできる相手も、GUI セッション側で `sudo` を起動させれば同じ立場になる
+  (遮断しているのは SSH セッション内で直接実行した `sudo` だけ)
+- **(c) パスワードの保存**: 画面ロック解除を使う限り、ログインパスワードが login keychain に
+  残る。保護は keychain の ACL 頼みで、より強い data protection keychain は使えない。
+  避けたい場合は `--set-password` を実行しない (sudo の指紋認証だけが有効になる)
+- **(d) 個別の未解決事項**: ロック画面がユーザー名欄を表示する構成ではパスワードが平文で
+  打たれうる / ロック解除と同時に最大 1 文字が解除後の画面に届きうる / root のデーモンが
+  クローズドソースの Windows 用 DLL を自作ローダーで実行しており、テンプレートファイルは
+  その DLL にとって信頼された入力である (root 0600 で保護) / 1 回のロックアウトは最大 15 分
+  だが、失敗カウンタは一致するまで減らないため、センサーに触れられる人はロックアウト明けに
+  触り続けることで指紋認証を止め続けられる (パスワードは使える) / ロックアウトの残り時間は
+  OS の再起動をまたぐと壁時計で復元するため、時計を進めてから OS を再起動できる相手は
+  残り時間を短縮できる (失敗カウンタは残る) / agent への MATCH 通知は
+  登録オーナーの権限で動くプロセスなら受信しうる (承認ではなく、画面ロック中の一致の通知)
+- **(e) 実機で未確認**: 修正後の構成での本物の sudo・SSH の拒否・実際のロック画面・
+  Hardened Runtime 付き agent・`install.sh` / `uninstall.sh` の通し実行
 
 ## 前提・制約
 
 - FileVault 解除（電源投入直後）は対象外。初回は手動パスワード入力
-- FocalTech の DLL・fw は `make vendor` が公開配布元から自動取得（コミットしない）
+- FocalTech の DLL・fw は `make vendor` が公開配布元から自動取得し、既知の SHA-256 と照合する（コミットしない）
 - matcher は x86_64 → `inmu-cored` は Rosetta 2 で実行 (Apple Silicon / Intel 両対応)
 - USB 断線時の自動再接続は未実装 (KeepAlive で再起動はする)
 - `daemon/` (SwiftPM) は将来の Swift 化への参照実装（設計ドキュメント docs/02 参照）
 
 ## 技術の核 (docs 詳細)
 
-- **PAM**: `/etc/pam.d/sudo_local` → `pam_inmu.so` → `pam.sock` (root) → MATCH で `PAM_SUCCESS`
-- **ロック解除**: cored → `agent.sock` → agent → `CGSSessionScreenIsLocked` 判定 →
+- **PAM**: `/etc/pam.d/sudo_local` → `pam_inmu.so` → `pam.sock` (root 0600) →
+  `WAIT <ms> <uid>` → cored が承認ポリシーを判定 → `OK` のときだけ `PAM_SUCCESS`
+- **ロック解除**: cored → `agent.sock` (登録オーナー 0600) → agent →
+  コンソール上かつ `CGSSessionScreenIsLocked` 判定 →
   Keychain (`com.mohemohe.inmu-lock`) → `CGEventPost` 注入
 - **matcher**: x86_64 PE (FocalTech 製) を Apple Silicon の Rosetta 2 上で in-process 実行。
   `%gs` (TEB) は mach trap `0x3000003`、libc 呼び出しは gs 切替え規律で保護

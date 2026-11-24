@@ -23,7 +23,9 @@ Phase 0 の2つのプロトタイプで「OSのどこまでが許されるか」
   **root 所有の** `/tmp/inmu_pam_demo_success` が存在する場合のみ
   （一般ユーザーが勝手にパスワードレス sudo を arm できない設計）
 - **テスト中は別ターミナルで `sudo -s` (rootシェル) を開いたままにすること**
-  （万一 sudo が壊れても root シェルから `uninstall.sh` を実行すれば戻せる）
+  （万一 sudo が壊れても root シェルから `uninstall.sh` を実行すれば戻せる。
+  `uninstall.sh` は `SUDO_USER` の無い root 実行を拒否するので、root シェルは
+  必ず `sudo -s` で開くこと。`sudo -i` や `su` で得た root シェルでは動かない）
 
 ### A-1. インストール
 
@@ -160,7 +162,10 @@ sudo -k && sudo whoami   # パスワードを聞かれれば完全に戻って�
 
 **緊急時（sudo が壊れた場合）:**
 
-1. 開いてある root シェル（A-0 で確保済み）から `uninstall.sh` を実行
+1. 開いてある root シェル（A-0 で確保済み、`sudo -s` で開いたもの）から `uninstall.sh` を実行。
+   `/etc/pam.d` に `pam_inmu.so` を参照する行が残っている場合、`uninstall.sh` は
+   PAM モジュールを残したまま該当行を表示して終了コード 1 で終わるので、
+   表示された行を手で削除してから再実行する
 2. root シェルがない場合は、別の管理者ユーザーでログインして `/etc/pam.d/sudo_local` を削除
 3. それも不可能なら: リカバリーモード (⌘R) → ターミナル →
    `/Volumes/<起動ディスク>/etc/pam.d/sudo_local` を削除 → 再起動
