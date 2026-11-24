@@ -14,9 +14,11 @@
     <true/>
     <key>ThrottleInterval</key>
     <integer>10</integer>
+    <!-- 以下 2 つの値はテンプレート。scripts/install.sh が plutil -replace で
+         実ユーザーの ~/Library/Logs/inmu-lock/ 配下の絶対パスへ置き換える -->
     <key>StandardOutPath</key>
-    <string>/Users/PLACEHOLDER/Library/Logs/inmu-lock/agent.log</string>
+    <string>@AGENT_LOG_DIR@/agent.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/PLACEHOLDER/Library/Logs/inmu-lock/agent.err.log</string>
+    <string>@AGENT_LOG_DIR@/agent.err.log</string>
 </dict>
 </plist>

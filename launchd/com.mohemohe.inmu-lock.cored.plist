@@ -18,6 +18,10 @@
     <true/>
     <key>ThrottleInterval</key>
     <integer>10</integer>
+    <!-- umask 077 (plist の integer は 10 進で解釈されるため 63 = 8 進 077)。
+         ログなど cored が作るファイルを root 以外から読めないようにする -->
+    <key>Umask</key>
+    <integer>63</integer>
     <key>StandardOutPath</key>
     <string>/var/log/inmu-lock/cored.log</string>
     <key>StandardErrorPath</key>
