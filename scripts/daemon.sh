@@ -16,20 +16,18 @@ DAEMON_ID="com.mohemohe.inmu-lock.cored"
 DAEMON_PLIST="/Library/LaunchDaemons/com.mohemohe.inmu-lock.cored.plist"
 
 # root でない場合は sudo を使う (TTY がない Makefile 経由では失敗するため、
-# Makefile からは sudo make 経由で呼ぶことを想定)
-if [ "$(id -u)" = "0" ]; then
-    SUDO=""
-else
-    SUDO="sudo"
-fi
+# Makefile からは sudo make 経由で呼ぶことを想定)。
+# inmu_as_root は引数をそのまま渡す (変数の単語分割に依存しない)。
+# shellcheck source=scripts/common.sh
+. "$(dirname "$0")/common.sh" || exit 1
 
 is_loaded() {
-    $SUDO launchctl print "system/$DAEMON_ID" >/dev/null 2>&1
+    inmu_as_root launchctl print "system/$DAEMON_ID" >/dev/null 2>&1
 }
 
 do_stop() {
     if is_loaded; then
-        if $SUDO launchctl bootout "system/$DAEMON_ID"; then
+        if inmu_as_root launchctl bootout "system/$DAEMON_ID"; then
             echo "  cored 停止しました"
         else
             echo "  !! cored 停止に失敗" >&2
@@ -49,7 +47,7 @@ do_start() {
         echo "  !! $DAEMON_PLIST が見つかりません — make install を先に実行してください" >&2
         return 1
     fi
-    if $SUDO launchctl bootstrap system "$DAEMON_PLIST"; then
+    if inmu_as_root launchctl bootstrap system "$DAEMON_PLIST"; then
         echo "  cored 起動しました"
     else
         echo "  !! cored 起動に失敗 — 'sudo make start-daemon' で実行してください" >&2
@@ -59,7 +57,7 @@ do_start() {
 
 do_restart() {
     if is_loaded; then
-        if $SUDO launchctl kickstart -k "system/$DAEMON_ID"; then
+        if inmu_as_root launchctl kickstart -k "system/$DAEMON_ID"; then
             echo "  cored 再起動しました (kickstart)"
         else
             echo "  !! cored 再起動に失敗" >&2

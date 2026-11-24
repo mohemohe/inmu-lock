@@ -12,40 +12,27 @@
 set -u
 
 AGENT_ID="com.mohemohe.inmu-lock.agent"
-AGENT_PLIST="$HOME/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist"
 
-# 実際のユーザーを特定 (sudo 経由の場合は SUDO_USER、そうでなければ自分)
-if [ -n "${SUDO_USER:-}" ] && [ "$(id -u)" = "0" ]; then
-    REAL_USER="$SUDO_USER"
-    REAL_UID=$(id -u "$SUDO_USER")
-    REAL_HOME=$(eval echo "~$SUDO_USER")
-    AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist"
-    AS_USER="sudo -u $SUDO_USER"
-elif [ "$(id -u)" = "0" ]; then
-    echo "  !! agent の操作にはユーザー権限が必要です (sudo make start-agent でなく" \
-         "make start-agent を実行、または SUDO_USER が設定された環境で実行してください)" >&2
-    exit 1
-else
-    REAL_USER="$(whoami)"
-    REAL_UID="$(id -u)"
-    AS_USER=""
-fi
+# shellcheck source=scripts/common.sh
+. "$(dirname "$0")/common.sh" || exit 1
+
+# 実際のユーザーを特定 (sudo 経由の場合は SUDO_USER、そうでなければ自分)。
+# ユーザー名の検証とホームの取得は inmu_resolve_real_user が行う。
+# root のまま (SUDO_USER 無し) の場合は対象の GUI セッションが決まらないため失敗する
+# (sudo make start-agent でなく make start-agent を実行すること)。
+REAL_USER=""
+REAL_UID=""
+REAL_HOME=""
+inmu_resolve_real_user || exit 1
+AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/com.mohemohe.inmu-lock.agent.plist"
 
 is_loaded() {
-    if [ -n "$AS_USER" ]; then
-        $AS_USER launchctl print "gui/$REAL_UID/$AGENT_ID" >/dev/null 2>&1
-    else
-        launchctl print "gui/$REAL_UID/$AGENT_ID" >/dev/null 2>&1
-    fi
+    inmu_as_user launchctl print "gui/$REAL_UID/$AGENT_ID" >/dev/null 2>&1
 }
 
 do_stop() {
     if is_loaded; then
-        if [ -n "$AS_USER" ]; then
-            $AS_USER launchctl bootout "gui/$REAL_UID/$AGENT_ID"
-        else
-            launchctl bootout "gui/$REAL_UID/$AGENT_ID"
-        fi
+        inmu_as_user launchctl bootout "gui/$REAL_UID/$AGENT_ID"
         echo "  agent 停止しました"
     else
         echo "  agent は既に停止中です"
@@ -61,21 +48,13 @@ do_start() {
         echo "  !! $AGENT_PLIST が見つかりません — make install を先に実行してください" >&2
         return 1
     fi
-    if [ -n "$AS_USER" ]; then
-        $AS_USER launchctl bootstrap "gui/$REAL_UID" "$AGENT_PLIST"
-    else
-        launchctl bootstrap "gui/$REAL_UID" "$AGENT_PLIST"
-    fi
+    inmu_as_user launchctl bootstrap "gui/$REAL_UID" "$AGENT_PLIST"
     echo "  agent 起動しました"
 }
 
 do_restart() {
     if is_loaded; then
-        if [ -n "$AS_USER" ]; then
-            $AS_USER launchctl kickstart -k "gui/$REAL_UID/$AGENT_ID"
-        else
-            launchctl kickstart -k "gui/$REAL_UID/$AGENT_ID"
-        fi
+        inmu_as_user launchctl kickstart -k "gui/$REAL_UID/$AGENT_ID"
         echo "  agent 再起動しました (kickstart)"
     else
         do_start
