@@ -5,14 +5,15 @@
  *   sudo ./build/inmu-enroll                     # /usr/local/etc/inmu-lock/template.bin へ
  *   sudo ./build/inmu-enroll --out PATH          # 任意のパスへ
  *   ./build/inmu-enroll --out /tmp/my.bin        # ユーザー領域へ (root不要)
+ *   --samples N                                   # 受理目標を変更 (デフォルト 8)
  *
- * フロー:
- *   1. FT9201 bring-up + 背景 (FPN) 取得
- *   2. vendor matcher (DLL, Rosetta 2) を enroll モードで起動
- *   3. 「指を置いてください」→ 撮影 → engine へ投入を繰り返し
- *      (engine が必要量を吸収したら完了 — 最大 ~18 サンプル)
- *   4. テンプレートを保存 (0600)
- *   5. デーモンへの反映は再起動 (launchd なら kickstart) — 末尾に案内
+ * 受理目標について:
+ *   Linux 版ドライバ (OMGrant/ft9201-libfprint) は固定 8 ステージでコミットする
+ *   方式であり、その方式で genuine 3/3 MATCH / imposter 3/3 reject を検証済み。
+ *   vendor engine の「完成報告」(coverage) は実測では常に 0 のまま届かないため、
+ *   engine の報告を待たずに固定受理数でコミットする。
+ *   却下 (重複/低品質) は受理数に含まれない。指の位置をずらすと受理されやすい。
+ *   Ctrl-C で中断した場合も、その時点の受理でコミットする。
  */
 
 #include "ft9201.h"
@@ -28,7 +29,8 @@
 #include <unistd.h>
 
 #define DEFAULT_OUT "/usr/local/etc/inmu-lock/template.bin"
-#define MAX_CAPTURES 25
+#define DEFAULT_SAMPLES 8   /* Linux 版ドライバと同じ固定ステージ数 (検証C実績値) */
+#define ENGINE_MAX_SAMPLES 18 /* engine 側の enroll_max_templates */
 
 static volatile sig_atomic_t g_stop = 0;
 static void on_signal(int sig) {
@@ -49,12 +51,21 @@ static void log_step(const char *fmt, ...) {
 int main(int argc, char **argv) {
     const char *out_path = DEFAULT_OUT;
     const char *engine_path = "/usr/local/libexec/inmu-lock/ftWbioEngineAdapter.dll";
+    long samples = DEFAULT_SAMPLES;
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--out") && i + 1 < argc) out_path = argv[++i];
         else if (!strcmp(argv[i], "--engine") && i + 1 < argc) engine_path = argv[++i];
+        else if (!strcmp(argv[i], "--samples") && i + 1 < argc) {
+            samples = atol(argv[++i]);
+            if (samples < 1) samples = 1;
+            if (samples > ENGINE_MAX_SAMPLES) samples = ENGINE_MAX_SAMPLES;
+        }
         else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
-            fprintf(stderr, "usage: %s [--out template.bin] [--engine DLL]\n", argv[0]);
+            fprintf(stderr,
+                    "usage: %s [--out template.bin] [--engine DLL] [--samples N]\n"
+                    "  --samples: 受理目標 (1-%d, デフォルト %d)\n",
+                    argv[0], ENGINE_MAX_SAMPLES, DEFAULT_SAMPLES);
             return 0;
         }
     }
@@ -109,9 +120,13 @@ int main(int argc, char **argv) {
     uint8_t quality[2] = {0, 0};
     int accepted = 0, rejected = 0, complete = 0;
 
-    while (!g_stop && accepted < MAX_CAPTURES) {
-        log_step("指をセンサーに置いてください (最大60秒待機) [%d 受理 / %d 却下]",
-                 accepted, rejected);
+    log_step("受理目標: %ld 回 (却下はカウントしません。指の位置を少しずつ"
+             "ずらすと受理されやすい。Ctrl-C で中断してもその時点で保存します)",
+             samples);
+
+    while (!g_stop && accepted < samples) {
+        log_step("指をセンサーに置いてください [受理 %d/%ld ・ 却下 %d]",
+                 accepted, samples, rejected);
         if (ft9201_wait_finger(&ft, 60000) != 0) {
             log_step("指が検知されない (タイムアウト) — 終了します");
             break;
@@ -138,8 +153,9 @@ int main(int argc, char **argv) {
             log_step("却下 (重複/低品質) — 少し指の位置をずらして置き直してください");
         } else {
             accepted++;
-            log_step("受理 (%d) %s", accepted,
-                     st == 0 ? "— 登録に必要な情報が揃いました ✅" : "— さらに採取します");
+            log_step("受理 (%d/%ld) %s", accepted, samples,
+                     st == 0 ? "— engine が完成を報告しました ✅"
+                             : (accepted >= samples ? "— 受理目標に到達 ✅" : "— さらに採取します"));
         }
         ft9201_wait_lift(&ft, 5000);
         if (st == 0) {
@@ -150,7 +166,10 @@ int main(int argc, char **argv) {
 
     int rc = 1;
     if (accepted > 0) {
-        if (!complete) log_step("最大サンプルに到達 — commit を試みます");
+        if (complete) log_step("engine 完成報告によりコミットします");
+        else if (g_stop) log_step("中断されました — この時点の受理でコミットします");
+        else log_step("受理目標 (%ld) に到達 — Linux版ドライバと同じ固定ステージ方式で"
+                      "コミットします", samples);
         uint8_t *tmpl = NULL;
         size_t tmpllen = 0;
         int cr = ft_engine_enroll_commit(&tmpl, &tmpllen);
