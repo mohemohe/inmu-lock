@@ -116,13 +116,13 @@ Windows マシンに挿して安定状態に戻す」運用が報告されてい
 
 | ソース | 内容 |
 |---|---|
-| https://github.com/OMGrant/ft9201-libfprint | ★本命の参考。libfprint ドライバ + vendor DLL の PE ローダー (`ft_engine.c`)。LGPL-2.1。`docs/how-it-works.md`, `PORTING.md` が詳細 |
+| https://github.com/OMGrant/ft9201-libfprint | ★本命の参考。libfprint ドライバ + vendor DLL の PE ローダー (`ft_engine.c`)。LGPL-2.1-or-later。`docs/how-it-works.md`, `PORTING.md` が詳細 |
 | https://github.com/banianitc/ft9201-fingerprint-driver | USB プロトコルの一次リバースエンジニアリング (Linux kernel module, LGPL-2.1)。init/capture のコマンド列はここから |
 | https://github.com/mrrbrilliant/ft9201-static | FocalTech の Linux blob。fw `FOCALFP_9348_FW_APP` と初期化シーケンスの出典 |
 | https://grantgarrison.com/blog/solving-linuxs-fingerprint-reader-problem/ | 経緯と 64×80 crop の発見の記録 (2026-11) |
 | https://github.com/ryenyuku/libfprint-ft9201, https://github.com/Romk-a/ft9201-linux-setup | FocalTech 製の Linux 用 TOD ドライバー (x86_64 ELF, PID 9338→93a9 patch)。macOS では使えないが動作仕様の傍証 |
 
-**ライセンス注意:** 参考実装はいずれも LGPL-2.1。プロトコル定数の移植は事実上の事実利用なので
+**ライセンス注意:** 参考実装は ft9201-libfprint が LGPL-2.1-or-later、banianitc 版が LGPL-2.1。プロトコル定数の移植は事実上の事実利用なので
 実害は低いが、コードを直接コピーする場合は派生物にも LGPL を適用すること。
 
 ## 6. fw blob / DLL の入手方法（リポジトリには含めない）

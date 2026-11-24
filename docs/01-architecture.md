@@ -92,7 +92,7 @@ inmu-lock/
 │   ├── lib/                        … 検証C/D で実証した共通ライブラリ
 │   │   ├── usb_transport.c         … IOKit USB (bulk / vendor control)
 │   │   ├── ft9201.c                … FT9201 bring-up + 画像取得
-│   │   ├── ft_engine_mac.c         … vendor matcher PE ローダー (Rosetta 2, LGPL-2.1)
+│   │   ├── ft_engine_mac.c         … vendor matcher PE ローダー (Rosetta 2, LGPL-2.1-or-later)
 │   │   └── ft9201_fw.h             … fw 配列 (make vendor が生成)
 │   ├── cored/inmu-cored.c          … Core Service デーモン (root, x86_64)
 │   ├── pam/pam_inmu.c              … PAM モジュール (universal)

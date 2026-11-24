@@ -1,7 +1,7 @@
 /*
  * ft9201.h — 検証D (T2): FT9201 bring-up (fw転送・initシーケンス) と画像取得。
  *
- * シーケンスの根拠: OMGrant/ft9201-libfprint src/ft9201.c (LGPL-2.1) の
+ * シーケンスの根拠: OMGrant/ft9201-libfprint src/ft9201.c (LGPL-2.1-or-later) の
  * init/scan 状態機械を同期版として移植 (docs/03 §4)。
  */
 

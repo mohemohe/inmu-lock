@@ -1,7 +1,7 @@
 /*
  * ft9201.c — 検証D (T2): FT9201 bring-up (同期版) と 96×96 画像取得。
  *
- * OMGrant/ft9201-libfprint src/ft9201.c (LGPL-2.1) の init/scan 状態機械を
+ * OMGrant/ft9201-libfprint src/ft9201.c (LGPL-2.1-or-later) の init/scan 状態機械を
  * 同期 C に移植したもの。シーケンス・定数・タイムアウトは原則そのまま。
  *
  * 注意 (banianitc 版から引継ぎ): init シーケンスの途中で失敗した場合、

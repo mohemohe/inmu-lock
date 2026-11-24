@@ -24,7 +24,7 @@
 //                MAP_FIXED_NOREPLACE → MAP_FIXED (推奨ベース 0x180000000 は
 //                競合しない前提。元実装と同じくリロケーションは処理しない)
 //
-// ラセンス: LGPL-2.1-or-later (ft9201-libfprint 由来の部分)
+// ライセンス: LGPL-2.1-or-later (ft9201-libfprint 由来の部分)
 
 #include <CommonCrypto/CommonDigest.h>
 #include <errno.h>

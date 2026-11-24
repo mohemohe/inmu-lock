@@ -91,7 +91,7 @@ src/
   lib/                      検証済み共通ライブラリ (検証C/D の実績コード)
     usb_transport.c         IOKit ユーザースペース USB (bulk, vendor control)
     ft9201.c                FT9201 bring-up (fw転送) + 96×96 画像取得
-    ft_engine_mac.c         vendor matcher DLL の PE ローダー (Rosetta 2, LGPL-2.1)
+    ft_engine_mac.c         vendor matcher DLL の PE ローダー (Rosetta 2, LGPL-2.1-or-later)
     ft9201_fw.h             fw 配列 (make vendor が生成 — コミットしない)
   cored/inmu-cored.c        Core Service デーモン (root, x86_64/Rosetta):
                             センサー制御 + 照合 + IPC (pam.sock/agent.sock)
@@ -220,3 +220,13 @@ agent のログを削除し、Keychain に保存したログインパスワー�
 - **matcher**: x86_64 PE (FocalTech 製) を Apple Silicon の Rosetta 2 上で in-process 実行。
   `%gs` (TEB) は mach trap `0x3000003`、libc 呼び出しは gs 切替え規律で保護
   (docs/03 §3-a)
+
+## ライセンス
+
+このリポジトリのコード (`src/`, `scripts/`, `tools/`, `daemon/` など) は
+**LGPL-2.1-or-later** で配布する。全文は [LICENSE](LICENSE) にある。
+参考にした Linux 実装 [OMGrant/ft9201-libfprint](https://github.com/OMGrant/ft9201-libfprint)
+(LGPL-2.1-or-later。libfprint に合わせたもの) に合わせている。
+
+FocalTech の DLL・MCU ファームウェアは FocalTech の所有物であり、このリポジトリには
+含まれず、本ライセンスの対象でもない (`make vendor` で各自が公開配布元から取得する)。

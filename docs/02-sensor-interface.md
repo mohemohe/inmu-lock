@@ -149,7 +149,7 @@ Ft9201/
 Matching/
   └── VendorMatcherClient.swift     … matcher ヘルパー (x86_64 プロセス, Rosetta 2) への
       Unix socket クライアント。ヘルパーは検証C の engine_test を発展させた
-      ft_engine_mac (LGPL-2.1) ベースで vendor DLL を実行する
+      ft_engine_mac (LGPL-2.1-or-later) ベースで vendor DLL を実行する
       (検証C 2026-11-24 成立 — docs/03 §3-a。実装は `src/lib/ft_engine_mac.c`、
         画像診断ツールは `tools/engine_test`)
 ```

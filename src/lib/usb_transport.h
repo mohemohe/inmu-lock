@@ -13,7 +13,7 @@
  *   - IOUSBDeviceInterface942 / IOUSBInterfaceInterface942 (IOUSBLib.h)
  *   - kIOUSBDeviceUserClientTypeID / kIOUSBInterfaceUserClientTypeID
  *   - DeviceRequestTO / ReadPipeTO / WritePipeTO
- *   - Linux 実装 (OMGrant/ft9201-libfprint, LGPL-2.1) の定数:
+ *   - Linux 実装 (OMGrant/ft9201-libfprint, LGPL-2.1-or-later) の定数:
  *       EP_OUT = 0x02 (bulk OUT), EP_IN = 0x83 (bulk IN)
  */
 
